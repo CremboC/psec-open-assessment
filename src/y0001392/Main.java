@@ -3,16 +3,16 @@ package y0001392;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.DoubleToIntFunction;
-import java.util.function.Function;
+import java.util.function.IntPredicate;
 import java.util.function.IntToDoubleFunction;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static java.util.Comparator.comparing;
+import static java.util.stream.Collectors.toList;
 
 public class Main {
 
@@ -20,26 +20,25 @@ public class Main {
 		private final K left;
 		private final V right;
 
-		public Pair(K left, V right) {
+		Pair(K left, V right) {
 			this.left = left;
 			this.right = right;
 		}
 
-		public K getLeft() {
+		K getLeft() {
 			return left;
 		}
-
-		public V getRight() {
+		V getRight() {
 			return right;
 		}
 	}
 
 	private static List<String> exactly(List<String> passwords, int size) {
-		return passwords.stream().filter(s -> s.length() == size).collect(Collectors.toList());
+		return passwords.stream().filter(s -> s.length() == size).collect(toList());
 	}
 
 	private static List<String> atleast(List<String> passwords, int size) {
-		return passwords.stream().filter(s -> s.length() >= size).collect(Collectors.toList());
+		return passwords.stream().filter(s -> s.length() >= size).collect(toList());
 	}
 
 	private static List<Pair<String, Integer>> parse(List<String> passwords) {
@@ -51,11 +50,11 @@ public class Main {
 					}
 					return new Pair<>(s[1], Integer.parseInt(s[0]));
 				})
-				.collect(Collectors.toList());
+				.collect(toList());
 	}
 
 	// from http://stackoverflow.com/questions/6737283/weighted-randomness-in-java
-	public static <E> E getWeightedRandom(List<Pair<E, Double>> weights) {
+	private static <E> E getWeightedRandom(List<Pair<E, Double>> weights) {
 		return weights
 				.stream()
 				.map(e -> new Pair<>(e.getLeft(), -Math.log(ThreadLocalRandom.current().nextDouble()) / e.getRight()))
@@ -63,14 +62,14 @@ public class Main {
 				.orElseThrow(IllegalArgumentException::new).getLeft();
 	}
 
-	public static <E> List<Pair<E, Double>> normalise(List<Pair<E, Integer>> items) {
+	private static <E> List<Pair<E, Double>> normalise(List<Pair<E, Integer>> items) {
 		int maxVal = items.stream().max(comparing(Pair::getRight)).map(Pair::getRight).get();
 		int minVal = items.stream().min(comparing(Pair::getRight)).map(Pair::getRight).get();
 
 		IntToDoubleFunction normalise = n -> ((double) (n - minVal) / (maxVal - minVal));
 		return items.stream()
 				.map(i -> new Pair<>(i.getLeft(), normalise.applyAsDouble(i.getRight())))
-				.collect(Collectors.toList());
+				.collect(toList());
 	}
 
 	// whole password + several from passcode
@@ -87,11 +86,12 @@ public class Main {
 		int m = 50_000_000;
 		int n1 = 6;
 		int n2 = 6;
+		final int passcodePicks = 3;
 
 		List<String> worstpasswords = Files.readAllLines(Paths.get("500-worst-passwords-processed.txt"));
 		List<Pair<String, Integer>> rockyou = parse(Files.readAllLines(Paths.get("rockyou-withcount-processed.txt")));
 
-		List<Pair<String, Double>> normalised = normalise(rockyou);
+//		List<Pair<String, Double>> normalised = normalise(rockyou);
 
 		//		List<Integer> rockyouCounts = rockyou.getLeft();
 //		List<String> rockyouPasswords = rockyou.getRight();
@@ -103,31 +103,90 @@ public class Main {
 		// n1 and n2 are known
 		// use passwords and passcodes of right size randomly drawn from 500-worst-passwords-processed.txt
 		// len(password) >= n1, len(passcode) == n2
-		List<String> attackPasswords = atleast(worstpasswords, n1);
-		List<String> attackPasscodes = exactly(worstpasswords, n2);
+		List<String> attackPasswords = worstpasswords.stream()
+				.filter(s -> s.length() >= n1)
+				.collect(toList());
 
-		// actual passwords and passcodes randomly drawn from rockyou-withcount-processed.txt
-		//		ThreadLocalRandom.current().nextInt(, max + 1);
-//		List<String> actualPasswords = atleast(rockyouPasswords, n1);
-//		List<String> actualPasscodes = exactly(rockyouPasswords, n2);
+		List<String> attackPasscodes = worstpasswords.stream()
+				.filter(s -> s.length() == n2)
+				.collect(toList());
 
-		// 1. pick password from rockyou
-		String password = getWeightedRandom(normalised.stream().filter(p -> p.getLeft().length() == n1).collect(Collectors.toList()));
+
+		List<Pair<String, Double>> requiredLengthPasswords = normalise(rockyou.stream()
+				.filter(p -> p.getLeft().length() >= n1)
+				.collect(toList()));
+
+
+		List<Pair<String, Double>> requiredLengthPasscodes = normalise(rockyou.stream()
+				.filter(p -> p.getLeft().length() == n2)
+				.collect(toList()));
+
+
+//		int total = IntStream.range(0, 100).reduce(0, (acc, i) -> {
+//			// 1. pick password from rockyou
+//
+//
+//			return acc + matches;
+//		});
+
+		String password = getWeightedRandom(requiredLengthPasswords);
+		String passcode = getWeightedRandom(requiredLengthPasscodes);
+
+		List<Integer> passcodeIndices = Arrays.asList(
+			 ThreadLocalRandom.current().nextInt(0, n2),
+			 ThreadLocalRandom.current().nextInt(0, n2),
+			 ThreadLocalRandom.current().nextInt(0, n2)
+		);
+
+		IntPredicate methodOne = j -> {
+			// 2.1 get password from 500 passwords
+			int rand1 = ThreadLocalRandom.current().nextInt(0, attackPasswords.size());
+			String attemptPassword = attackPasswords.get(rand1);
+
+			// 2.1.1 get passcode from 500
+			int rand2 = ThreadLocalRandom.current().nextInt(0, attackPasscodes.size());
+			String attemptPasscode = attackPasscodes.get(rand2);
+
+			// 2.2 test password
+			// 2.3 test passcode
+			return Objects.equals(password, attemptPassword) &&
+					passcodeIndices.stream().allMatch(i -> attemptPasscode.charAt(i) == passcode.charAt(i));
+
+		};
+
 		// 2. for m times
-		int matches = IntStream.range(0, m).filter(i -> {
-			// 2.1 attempt password from 500
-			int rand = ThreadLocalRandom.current().nextInt(0, attackPasswords.size());
-			String attempt = attackPasswords.get(rand);
-			return Objects.equals(password, attempt);
-		}).boxed().collect(Collectors.toList()).size();
+		int matches = IntStream.range(0, m).parallel().filter(methodOne).boxed().collect(toList()).size();
 
 		System.out.println(matches);
 
-		//		}
+		List<Integer> passwordIndices = Arrays.asList(
+				ThreadLocalRandom.current().nextInt(0, n1),
+				ThreadLocalRandom.current().nextInt(0, n1),
+				ThreadLocalRandom.current().nextInt(0, n1)
+		);
+
+		IntPredicate methodTwo = j -> {
+			// 2.1 get password from 500 passwords
+			int rand1 = ThreadLocalRandom.current().nextInt(0, attackPasswords.size());
+			String attemptPassword = attackPasswords.get(rand1);
+
+			// 2.1.1 get passcode from 500
+			int rand2 = ThreadLocalRandom.current().nextInt(0, attackPasscodes.size());
+			String attemptPasscode = attackPasscodes.get(rand2);
 
 
-//
-//		getWeightedRandom()
+			boolean passwordIndicesMatch = passwordIndices.stream()
+					.allMatch(i -> attemptPassword.charAt(i) == password.charAt(i));
 
+			boolean passcodeIndicesMatch = passcodeIndices.stream()
+					.allMatch(i -> attemptPasscode.charAt(i) == passcode.charAt(i));
+
+			return passwordIndicesMatch && passcodeIndicesMatch;
+
+		};
+
+		int matches2 = IntStream.range(0, m).parallel().filter(methodTwo).boxed().collect(toList()).size();
+
+		System.out.println(matches2);
 	}
 }
