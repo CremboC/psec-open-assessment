@@ -16,8 +16,8 @@ public abstract class Guess {
     final List<String> attackPasswords;
     final List<String> attackPasscodes;
 
-    final List<Pair<String, Double>> consumerPasscodes;
-    final List<Pair<String, Double>> consumerPasswords;
+    final List<Pair<String, Double>> customerPasscodes;
+    final List<Pair<String, Double>> customerPasswords;
 
 
     Guess(int m, int n1, int n2, List<String> attackSource, List<Pair<String, Integer>> consumerSource) {
@@ -33,11 +33,11 @@ public abstract class Guess {
                 .filter(s -> s.length() == n2)
                 .collect(toList());
 
-        consumerPasswords = normalise(consumerSource.stream()
+        customerPasswords = normalise(consumerSource.stream()
                 .filter(p -> p.getLeft().length() >= n1)
                 .collect(toList()));
 
-        consumerPasscodes = normalise(consumerSource.stream()
+        customerPasscodes = normalise(consumerSource.stream()
                 .filter(p -> p.getLeft().length() == n2)
                 .collect(toList()));
     }
@@ -61,5 +61,5 @@ public abstract class Guess {
                 .collect(toList());
     }
 
-    public abstract boolean guess();
+    public abstract Triple<Integer, String, String> guess();
 }
