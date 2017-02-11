@@ -14,20 +14,12 @@ public class MethodOne extends Guess {
     }
 
     @Override
-    public Triple<Integer, String, String> guess() {
-//        System.out.println();
-
-        String password = getWeightedRandom(customerPasswords);
-        String passcode = getWeightedRandom(customerPasscodes);
-
-//        System.out.printf("Cracking %s and %s\n", password, passcode);
-
+    public int guess() {
         IntUnaryOperator run = j -> {
-            // 2.1 get password from 500 passwords
+            // get password and passcode
             int rand1 = ThreadLocalRandom.current().nextInt(0, attackPasswords.size());
             String attemptPassword = attackPasswords.get(rand1);
 
-            // 2.1.1 get passcode from 500
             int rand2 = ThreadLocalRandom.current().nextInt(0, attackPasscodes.size());
             String attemptPasscode = attackPasscodes.get(rand2);
 
@@ -38,17 +30,14 @@ public class MethodOne extends Guess {
                     .boxed()
                     .collect(toList());
 
-            // 2.2 test password
-            boolean passwordsFullyMatch = password.equals(attemptPassword);
-            // 2.3 test passcode
-            boolean passcodeIndicesMatch = passcodeIndices.stream()
-                    .allMatch(k -> attemptPasscode.charAt(k) == passcode.charAt(k));
+            String password = getWeightedRandom(customerPasswords);
+            String passcode = getWeightedRandom(customerPasscodes);
 
-            return (passwordsFullyMatch && passcodeIndicesMatch) ? 1 : 0;
+            return (password.equals(attemptPassword) && passcodeIndices.stream()
+                    .allMatch(k -> attemptPasscode.charAt(k) == passcode.charAt(k)))
+                    ? 1 : 0;
         };
 
-        // 2. for m times
-        int matches = IntStream.range(0, m).parallel().map(run).sum();
-        return new Triple<>(matches, password, passcode);
+        return IntStream.range(0, m).parallel().map(run).sum();
     }
 }

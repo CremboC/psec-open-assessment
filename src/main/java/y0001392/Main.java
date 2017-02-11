@@ -50,9 +50,7 @@ public class Main {
 		Guess finalGuesser = guesser;
 		IntStream.range(0, runs)
 				.mapToObj(i -> finalGuesser.guess())
-				.forEach(r -> {
-					System.out.printf("%s,%s,%d\n", r.getMiddle(), r.getRight(), r.getLeft());
-				});
+				.forEach(r -> System.out.printf("%d\n", r));
 	}
 
 	private static List<Pair<String, Integer>> parse(List<String> passwords) {

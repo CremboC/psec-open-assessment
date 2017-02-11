@@ -61,5 +61,5 @@ public abstract class Guess {
                 .collect(toList());
     }
 
-    public abstract Triple<Integer, String, String> guess();
+    public abstract int guess();
 }

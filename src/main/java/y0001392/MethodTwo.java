@@ -12,23 +12,19 @@ public class MethodTwo extends Guess {
         super(m, n1, n2, attackSource, consumerSource);
     }
 
-    private class Attempt {
-		private final String password;
-		private final String passcode;
+    @Override
+    public int guess() {
+		IntUnaryOperator run = j -> {
 
-		Attempt(String password, String passcode) {
-			this.password = password;
-			this.passcode = passcode;
-		}
-
-		int run(int j) {
-			// 2.1 get password from 500 passwords
+			// get password and passcode
 			int rand1 = ThreadLocalRandom.current().nextInt(0, attackPasswords.size());
 			String attemptPassword = attackPasswords.get(rand1);
 
-			// 2.1.1 get passcode from 500
 			int rand2 = ThreadLocalRandom.current().nextInt(0, attackPasscodes.size());
 			String attemptPasscode = attackPasscodes.get(rand2);
+
+			String password = getWeightedRandom(customerPasswords);
+			String passcode = getWeightedRandom(customerPasscodes);
 
 			List<Integer> passwordIndices = ThreadLocalRandom.current()
 					.ints(0, n2)
@@ -44,30 +40,11 @@ public class MethodTwo extends Guess {
 					.boxed()
 					.collect(toList());
 
-			boolean passwordIndicesMatch = passwordIndices.stream()
-					.allMatch(i -> attemptPassword.charAt(i) == password.charAt(i));
+			return (passwordIndices.stream().allMatch(i -> attemptPassword.charAt(i) == password.charAt(i)) &&
+                    passcodeIndices.stream().allMatch(i -> attemptPasscode.charAt(i) == passcode.charAt(i)))
+                    ? 1 : 0;
+		};
 
-			boolean passcodeIndicesMatch = passcodeIndices.stream()
-					.allMatch(i -> attemptPasscode.charAt(i) == passcode.charAt(i));
-
-			return (passwordIndicesMatch && passcodeIndicesMatch) ? 1 : 0;
-		}
-	}
-
-    @Override
-    public Triple<Integer, String, String> guess() {
-        String password = getWeightedRandom(customerPasswords);
-        String passcode = getWeightedRandom(customerPasscodes);
-
-//		System.out.printf("Cracking %s and %s\n", password, passcode);
-
-//        IntUnaryOperator run = j -> {
-
-//        };
-
-		Attempt attempt = new Attempt(password, passcode);
-		// 2. for m times
-		int matches = IntStream.range(0, m).parallel().map(attempt::run).sum();
-		return new Triple<>(matches, password, passcode);
+		return IntStream.range(0, m).parallel().map(run).sum();
     }
 }
