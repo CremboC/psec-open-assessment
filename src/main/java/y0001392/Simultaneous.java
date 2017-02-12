@@ -33,10 +33,12 @@ public class Simultaneous extends Guess {
             String password = customerPasswords.sample();
             String passcode = customerPasscodes.sample();
 
-            boolean methodOne = password.equals(attemptPassword) &&
+            boolean methodOne =
+                    password.equals(attemptPassword) &&
                     passcodeIndices.stream().allMatch(k -> attemptPasscode.charAt(k) == passcode.charAt(k));
 
-            boolean methodTwo = passwordIndices.stream().allMatch(i -> attemptPassword.charAt(i) == password.charAt(i)) &&
+            boolean methodTwo =
+                    passwordIndices.stream().allMatch(i -> attemptPassword.charAt(i) == password.charAt(i)) &&
                     passcodeIndices.stream().allMatch(i -> attemptPasscode.charAt(i) == passcode.charAt(i));
 
             return Pair.create(methodOne ? 1 : 0, methodTwo ? 1 : 0);
