@@ -1,5 +1,8 @@
 package y0001392;
 
+import org.apache.commons.math3.util.Pair;
+
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.IntUnaryOperator;
@@ -17,21 +20,13 @@ public class MethodOne extends Guess {
     public int guess() {
         IntUnaryOperator run = j -> {
             // get password and passcode
-            int rand1 = ThreadLocalRandom.current().nextInt(0, attackPasswords.size());
-            String attemptPassword = attackPasswords.get(rand1);
+            String attemptPassword = attackPasswords.get(ThreadLocalRandom.current().nextInt(0, attackPasswords.size()));
 
-            int rand2 = ThreadLocalRandom.current().nextInt(0, attackPasscodes.size());
-            String attemptPasscode = attackPasscodes.get(rand2);
+            List<Integer> passcodeIndices = pickIndices(n2);
+            String attemptPasscode = attackPasscodes.get(ThreadLocalRandom.current().nextInt(0, attackPasscodes.size()));
 
-            List<Integer> passcodeIndices = ThreadLocalRandom.current()
-                    .ints(0, n2)
-                    .distinct()
-                    .limit(3)
-                    .boxed()
-                    .collect(toList());
-
-            String password = getWeightedRandom(customerPasswords);
-            String passcode = getWeightedRandom(customerPasscodes);
+            String password = customerPasswords.sample();
+            String passcode = customerPasscodes.sample();
 
             return (password.equals(attemptPassword) && passcodeIndices.stream()
                     .allMatch(k -> attemptPasscode.charAt(k) == passcode.charAt(k)))

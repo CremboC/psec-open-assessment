@@ -1,6 +1,10 @@
 package y0001392;
 
 
+import org.apache.commons.math3.distribution.EnumeratedDistribution;
+import org.apache.commons.math3.util.Pair;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.IntToDoubleFunction;
@@ -13,12 +17,13 @@ public abstract class Guess {
     final int n1;
     final int n2;
 
+    public final int PASSCODE_INDICES = 3;
+
     final List<String> attackPasswords;
     final List<String> attackPasscodes;
 
-    final List<Pair<String, Double>> customerPasscodes;
-    final List<Pair<String, Double>> customerPasswords;
-
+    final EnumeratedDistribution<String> customerPasscodes;
+    final EnumeratedDistribution<String> customerPasswords;
 
     Guess(int m, int n1, int n2, List<String> attackSource, List<Pair<String, Integer>> consumerSource) {
         this.m = m;
@@ -33,32 +38,40 @@ public abstract class Guess {
                 .filter(s -> s.length() == n2)
                 .collect(toList());
 
-        customerPasswords = normalise(consumerSource.stream()
-                .filter(p -> p.getLeft().length() >= n1)
+        List<Pair<String, Double>> normalisedPasswords = normalise(consumerSource.stream()
+                .filter(p -> p.getFirst().length() >= n1)
                 .collect(toList()));
 
-        customerPasscodes = normalise(consumerSource.stream()
-                .filter(p -> p.getLeft().length() == n2)
-                .collect(toList()));
-    }
+        customerPasswords = new EnumeratedDistribution<>(normalisedPasswords);
 
-    // from http://stackoverflow.com/questions/6737283/weighted-randomness-in-java
-    <E> E getWeightedRandom(List<Pair<E, Double>> weights) {
-        return weights
-                .stream()
-                .map(e -> new Pair<>(e.getLeft(), -Math.log(ThreadLocalRandom.current().nextDouble()) / e.getRight()))
-                .min(comparing(Pair::getRight))
-                .orElseThrow(IllegalArgumentException::new).getLeft();
+        List<Pair<String, Double>> normalisedPasscodes = normalise(consumerSource.stream()
+                .filter(p -> p.getFirst().length() == n2)
+                .collect(toList()));
+
+        customerPasscodes = new EnumeratedDistribution<>(normalisedPasscodes);
     }
 
     private <E> List<Pair<E, Double>> normalise(List<Pair<E, Integer>> items) {
-        int maxVal = items.stream().max(comparing(Pair::getRight)).map(Pair::getRight).orElseThrow(IllegalStateException::new);
-        int minVal = items.stream().min(comparing(Pair::getRight)).map(Pair::getRight).orElseThrow(IllegalStateException::new);
+        int maxVal = items.stream().max(comparing(Pair::getSecond)).map(Pair::getSecond).orElseThrow(IllegalStateException::new);
+        int minVal = items.stream().min(comparing(Pair::getSecond)).map(Pair::getSecond).orElseThrow(IllegalStateException::new);
 
         IntToDoubleFunction normalise = n -> ((double) (n - minVal) / (maxVal - minVal));
         return items.stream()
-                .map(i -> new Pair<>(i.getLeft(), normalise.applyAsDouble(i.getRight())))
+                .map(i -> new Pair<>(i.getFirst(), normalise.applyAsDouble(i.getSecond())))
                 .collect(toList());
+    }
+
+    List<Integer> pickIndices(int bound) {
+        List<Integer> numbers = new ArrayList<>(bound);
+        for (int i = 0; i < PASSCODE_INDICES; i++) {
+            int v;
+            do {
+                v = ThreadLocalRandom.current().nextInt(0, bound);
+            } while (numbers.contains(v));
+            numbers.add(v);
+        }
+
+        return numbers;
     }
 
     public abstract int guess();

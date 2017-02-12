@@ -1,8 +1,12 @@
 package y0001392;
 
+import org.apache.commons.math3.util.Pair;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -47,11 +51,21 @@ public class Main {
 			break;
 		}
 
-		Guess finalGuesser = guesser;
-		IntStream.range(0, runs)
-				.mapToObj(i -> finalGuesser.guess())
-				.forEach(r -> System.out.printf("%d\n", r));
-	}
+        final long start = System.nanoTime();
+
+        Guess finalGuesser = guesser;
+        List<String> data = IntStream.range(0, runs)
+                .map(operand -> finalGuesser.guess())
+                .boxed()
+                .map(matches -> String.format("%d,", matches))
+                .collect(toList());
+        final long end = System.nanoTime() - start;
+        System.out.println(end / 1E9);
+
+
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        Files.write(Paths.get(String.format("result_%s_%d_%d_%s.txt", method.toString(), n1, n2, timestamp)), data);
+    }
 
 	private static List<Pair<String, Integer>> parse(List<String> passwords) {
 		return passwords.stream()
