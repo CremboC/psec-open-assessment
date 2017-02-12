@@ -75,4 +75,5 @@ public abstract class Guess {
     }
 
     public abstract int guess();
+    public abstract Pair<Integer, Integer> guess2();
 }

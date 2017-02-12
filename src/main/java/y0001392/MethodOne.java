@@ -35,4 +35,9 @@ public class MethodOne extends Guess {
 
         return IntStream.range(0, m).parallel().map(run).sum();
     }
+
+    @Override
+    public Pair<Integer, Integer> guess2() {
+        throw new RuntimeException("Not Implemented");
+    }
 }

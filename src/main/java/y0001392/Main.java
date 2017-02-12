@@ -15,7 +15,7 @@ import static java.util.stream.Collectors.toList;
 public class Main {
 
 	enum Method {
-		one, two
+		one, two, both
 	}
 
 	public static void main(String[] args) throws IOException {
@@ -49,15 +49,22 @@ public class Main {
 		case two:
 			guesser = new MethodTwo(m, n1, n2, worstpasswords, rockyou);
 			break;
+        case both:
+            guesser = new Simultaneous(m, n1, n2, worstpasswords, rockyou);
+            break;
 		}
 
         final long start = System.nanoTime();
 
         Guess finalGuesser = guesser;
+//        List<String> data = IntStream.range(0, runs)
+//                .map(operand -> finalGuesser.guess())
+//                .boxed()
+//                .map(matches -> String.format("%d,", matches))
+//                .collect(toList());
         List<String> data = IntStream.range(0, runs)
-                .map(operand -> finalGuesser.guess())
-                .boxed()
-                .map(matches -> String.format("%d,", matches))
+                .mapToObj(operand -> finalGuesser.guess2())
+                .map(p -> String.format("%d,%d,", p.getFirst(), p.getSecond()))
                 .collect(toList());
         final long end = System.nanoTime() - start;
         System.out.println(end / 1E9);
