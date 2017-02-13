@@ -5,8 +5,6 @@ import org.apache.commons.math3.util.Pair;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -14,64 +12,39 @@ import static java.util.stream.Collectors.toList;
 
 public class Main {
 
-	enum Method {
-		one, two, both
-	}
-
 	public static void main(String[] args) throws IOException {
-		if (args.length != 5) {
-			throw new IllegalArgumentException("Must provide 4 arguments in form of: m n1 n2 (one,two)");
+		if (args.length != 4) {
+			throw new IllegalArgumentException("Must provide 4 arguments in form of: number_of_runs m n1 n2");
 		}
 		int runs = Integer.parseInt(args[0]);
 		int m = Integer.parseInt(args[1]);
 		int n1 = Integer.parseInt(args[2]);
 		int n2 = Integer.parseInt(args[3]);
-		Method method = Method.valueOf(args[4]);
 
-		System.out.printf("Using parameters: %d %d %d %s\n", m, n1, n2, method.toString());
-
-		List<String> worstpasswords = Files.readAllLines(Paths.get("500-worst-passwords-processed.txt"));
-		List<Pair<String, Integer>> rockyou = parse(Files.readAllLines(Paths.get("rockyou-withcount-processed.txt")));
+		List<String> attackSource = Files.readAllLines(Paths.get("500-worst-passwords-processed.txt"));
+		List<Pair<String, Integer>> customerSource = parse(Files.readAllLines(Paths.get("rockyou-withcount-processed.txt")));
 
 		// m  -- number of guesses
 		// n1 -- length of password (n1 or more chars)
 		// n2 -- length of passcode (exactly n2 chars)
 
-		// n1 and n2 are known
-		// use passwords and passcodes of right size randomly drawn from 500-worst-passwords-processed.txt
-		// len(password) >= n1, len(passcode) == n2
-
-		Guess guesser = null;
-		switch (method) {
-		case one:
-			guesser = new MethodOne(m, n1, n2, worstpasswords, rockyou);
-			break;
-		case two:
-			guesser = new MethodTwo(m, n1, n2, worstpasswords, rockyou);
-			break;
-        case both:
-            guesser = new Simultaneous(m, n1, n2, worstpasswords, rockyou);
-            break;
-		}
+        System.out.printf("Using parameters: %d %d %d for %d runs\n", m, n1, n2, runs);
 
         final long start = System.nanoTime();
 
-        Guess finalGuesser = guesser;
-//        List<String> data = IntStream.range(0, runs)
-//                .map(operand -> finalGuesser.guess())
-//                .boxed()
-//                .map(matches -> String.format("%d,", matches))
-//                .collect(toList());
+        Guess guesser = new Simultaneous(m, n1, n2, attackSource, customerSource);
         List<String> data = IntStream.range(0, runs)
-                .mapToObj(operand -> finalGuesser.guess2())
+                .mapToObj(operand -> guesser.guess())
                 .map(p -> String.format("%d,%d,", p.getFirst(), p.getSecond()))
                 .collect(toList());
+
         final long end = System.nanoTime() - start;
         System.out.println(end / 1E9);
 
-
         String timestamp = String.valueOf(System.currentTimeMillis());
-        Files.write(Paths.get(String.format("result_%s_%d_%d_%s.txt", method.toString(), n1, n2, timestamp)), data);
+        String filename = String.format("result_%d_%d_%s.txt", n1, n2, timestamp);
+        System.out.printf("A file named %s has been written with the data.\n", filename);
+        Files.write(Paths.get(filename), data);
     }
 
 	private static List<Pair<String, Integer>> parse(List<String> passwords) {

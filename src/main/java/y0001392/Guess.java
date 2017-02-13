@@ -6,8 +6,10 @@ import org.apache.commons.math3.util.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.IntToDoubleFunction;
+import java.util.stream.Collectors;
 
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
@@ -17,18 +19,29 @@ public abstract class Guess {
     final int n1;
     final int n2;
 
-    public final int PASSCODE_INDICES = 3;
+    private final int PASSCODE_INDICES = 3;
 
     final List<String> attackPasswords;
     final List<String> attackPasscodes;
 
     final EnumeratedDistribution<String> customerPasscodes;
     final EnumeratedDistribution<String> customerPasswords;
+    final Map<Integer, List<String>> attackSourceByLength;
 
+    /**
+     * @param m number of guesses
+     * @param n1 minimal length of password
+     * @param n2 exact length of passcode
+     * @param attackSource source of passwords/codes used for attacking
+     * @param consumerSource source of passwords/codes used as actual customer password/code. Non-normalised.
+     */
     Guess(int m, int n1, int n2, List<String> attackSource, List<Pair<String, Integer>> consumerSource) {
         this.m = m;
         this.n1 = n1;
         this.n2 = n2;
+
+        attackSourceByLength = attackSource.stream()
+                .collect(Collectors.groupingBy(String::length));
 
         attackPasswords = attackSource.stream()
                 .filter(s -> s.length() >= n1)
@@ -38,19 +51,22 @@ public abstract class Guess {
                 .filter(s -> s.length() == n2)
                 .collect(toList());
 
-        List<Pair<String, Double>> normalisedPasswords = normalise(consumerSource.stream()
+        List<Pair<String, Integer>> filteredPasswords = consumerSource.stream()
                 .filter(p -> p.getFirst().length() >= n1)
-                .collect(toList()));
+                .collect(toList());
 
-        customerPasswords = new EnumeratedDistribution<>(normalisedPasswords);
+        customerPasswords = new EnumeratedDistribution<>(normalise(filteredPasswords));
 
-        List<Pair<String, Double>> normalisedPasscodes = normalise(consumerSource.stream()
+        List<Pair<String, Integer>> filteredPasscodes = consumerSource.stream()
                 .filter(p -> p.getFirst().length() == n2)
-                .collect(toList()));
+                .collect(toList());
 
-        customerPasscodes = new EnumeratedDistribution<>(normalisedPasscodes);
+        customerPasscodes = new EnumeratedDistribution<>(normalise(filteredPasscodes));
     }
 
+    /**
+     * Normalise data from Integer to Double
+     */
     private <E> List<Pair<E, Double>> normalise(List<Pair<E, Integer>> items) {
         int maxVal = items.stream().max(comparing(Pair::getSecond)).map(Pair::getSecond).orElseThrow(IllegalStateException::new);
         int minVal = items.stream().min(comparing(Pair::getSecond)).map(Pair::getSecond).orElseThrow(IllegalStateException::new);
@@ -61,6 +77,9 @@ public abstract class Guess {
                 .collect(toList());
     }
 
+    /**
+     * Picks 3 distinct numbers up to the bound
+     */
     List<Integer> pickIndices(int bound) {
         List<Integer> numbers = new ArrayList<>(bound);
         for (int i = 0; i < PASSCODE_INDICES; i++) {
@@ -74,6 +93,9 @@ public abstract class Guess {
         return numbers;
     }
 
-    public abstract int guess();
-    public abstract Pair<Integer, Integer> guess2();
+    /**
+     * Run the bulk-guesser.
+     * @return A pair of integers, first being matches for method one, other for method two.
+     */
+    public abstract Pair<Integer, Integer> guess();
 }
