@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
 
-public abstract class Guess {
+public abstract class Guesser {
     final int m;
     final int n1;
     final int n2;
@@ -24,8 +24,8 @@ public abstract class Guess {
     final List<String> attackPasswords;
     final List<String> attackPasscodes;
 
-    final EnumeratedDistribution<String> customerPasscodes;
     final EnumeratedDistribution<String> customerPasswords;
+    final EnumeratedDistribution<String> customerPasscodes;
     final Map<Integer, List<String>> attackSourceByLength;
 
     /**
@@ -35,7 +35,7 @@ public abstract class Guess {
      * @param attackSource source of passwords/codes used for attacking
      * @param consumerSource source of passwords/codes used as actual customer password/code. Non-normalised.
      */
-    Guess(int m, int n1, int n2, List<String> attackSource, List<Pair<String, Integer>> consumerSource) {
+    Guesser(int m, int n1, int n2, List<String> attackSource, List<Pair<String, Integer>> consumerSource) {
         this.m = m;
         this.n1 = n1;
         this.n2 = n2;

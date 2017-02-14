@@ -32,7 +32,7 @@ public class Main {
 
         final long start = System.nanoTime();
 
-        Guess guesser = new Simultaneous(m, n1, n2, attackSource, customerSource);
+        Guesser guesser = new Simultaneous(m, n1, n2, attackSource, customerSource);
         List<String> data = IntStream.range(0, runs)
                 .mapToObj(operand -> guesser.guess())
                 .map(p -> String.format("%d,%d,", p.getFirst(), p.getSecond()))
